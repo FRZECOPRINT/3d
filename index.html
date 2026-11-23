@@ -140,9 +140,13 @@
   // Código del cliente: ?m=ABC123  (solo letras, números, - y _)
   const params = new URLSearchParams(location.search);
   const crudo = (params.get("m") || "").trim();
-  const codigo = /^[A-Za-z0-9_-]{1,40}$/.test(crudo) ? crudo : "";
+  const codigo = /^[A-Za-z0-9_.-]{1,120}$/.test(crudo) ? crudo.replace(/\.glb$/i, "") : "";
 
-  if (codigo) {
+  if (crudo && !codigo) {
+    document.getElementById("codigo").textContent = "";
+    mv.src = "";
+    setTimeout(() => mv.dispatchEvent(new Event("error")), 0);
+  } else if (codigo) {
     document.getElementById("codigo").textContent = "Código: " + codigo;
     mv.src = CARPETA + codigo + ".glb";
   } else {
