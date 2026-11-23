@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tu modelo 3D · FRZ EcoPrint</title>
+<meta name="description" content="Tu foto convertida en modelo 3D. Gíralo con el dedo y míralo en tu espacio.">
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+<style>
+  /* ====== CONFIGURA AQUÍ ====== */
+  :root{
+    --fondo:#0f1115;
+    --panel:#181b22;
+    --texto:#f2f3f5;
+    --suave:#9aa1ad;
+    --acento:#22c55e;      /* verde: botón principal */
+    --acento2:#f59e0b;     /* ámbar: botón impreso */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--fondo);color:var(--texto);
+    display:flex;flex-direction:column;min-height:100dvh;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;
+  }
+  .marca{font-weight:800;letter-spacing:.5px;font-size:18px}
+  .marca span{color:var(--acento)}
+  .codigo{font-size:12px;color:var(--suave);font-family:ui-monospace,monospace}
+
+  .visor{position:relative;flex:1;min-height:58dvh}
+  model-viewer{
+    width:100%;height:100%;min-height:58dvh;
+    background:radial-gradient(circle at 50% 40%,#262b36 0%,var(--fondo) 70%);
+    --poster-color:transparent;
+  }
+  /* Marca de agua de vista previa */
+  .agua{
+    position:absolute;inset:0;pointer-events:none;overflow:hidden;
+    display:flex;flex-wrap:wrap;align-content:center;justify-content:center;
+    gap:70px 50px;transform:rotate(-24deg) scale(1.4);opacity:.10;
+    font-weight:800;font-size:20px;letter-spacing:2px;white-space:nowrap;user-select:none;
+  }
+  .barra{
+    position:absolute;left:0;top:0;height:3px;width:0;background:var(--acento);
+    transition:width .2s;
+  }
+  .aviso{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:24px;gap:10px;
+    color:var(--suave);font-size:15px;
+  }
+  .aviso b{color:var(--texto);font-size:17px}
+  .oculto{display:none!important}
+  .ayuda{
+    position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.55);padding:7px 14px;border-radius:20px;
+    font-size:13px;color:#ddd;white-space:nowrap;pointer-events:none;
+    transition:opacity .6s;
+  }
+  .btn-ar{
+    position:absolute;right:14px;bottom:14px;border:0;border-radius:24px;
+    background:#fff;color:#111;font-weight:700;padding:10px 16px;font-size:14px;
+  }
+
+  .panel{
+    background:var(--panel);border-radius:22px 22px 0 0;padding:20px 18px 26px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .panel h1{font-size:19px}
+  .panel p{color:var(--suave);font-size:14px;line-height:1.45}
+  a.boton{
+    display:block;text-align:center;text-decoration:none;font-weight:700;
+    padding:15px;border-radius:14px;font-size:16px;color:#0b0d10;
+  }
+  .verde{background:var(--acento)}
+  .ambar{background:var(--acento2)}
+  .pie{font-size:12px;color:var(--suave);text-align:center;margin-top:4px}
+  @media (min-width:900px){
+    body{flex-direction:row;flex-wrap:wrap}
+    header{width:100%}
+    .visor{flex:2;min-height:calc(100dvh - 60px)}
+    model-viewer{min-height:calc(100dvh - 60px)}
+    .panel{flex:1;max-width:380px;border-radius:22px;margin:0 18px 18px 0;align-self:flex-end}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">FRZ <span>EcoPrint</span> 3D</div>
+  <div class="codigo" id="codigo"></div>
+</header>
+
+<div class="visor">
+  <model-viewer id="mv"
+    camera-controls touch-action="pan-y"
+    auto-rotate auto-rotate-delay="0" rotation-per-second="25deg"
+    shadow-intensity="1" exposure="1.05"
+    ar ar-modes="webxr scene-viewer quick-look"
+    alt="Tu modelo 3D">
+    <button slot="ar-button" class="btn-ar">📱 Verlo en tu mesa</button>
+  </model-viewer>
+  <div class="barra" id="barra"></div>
+  <div class="agua" id="agua"></div>
+  <div class="ayuda" id="ayuda">👆 Gíralo con el dedo · pellizca para acercar</div>
+  <div class="aviso oculto" id="aviso"></div>
+</div>
+
+<section class="panel">
+  <h1>¡Tu foto ya está en 3D!</h1>
+  <p>Esta es tu <b>vista previa</b>. Si te gusta, te envío el archivo a color para que lo guardes y lo abras en tu celular cuando quieras.</p>
+  <a class="boton verde" id="btnArchivo" target="_blank" rel="noopener">✅ Quiero mi archivo a color</a>
+  <div class="pie">FRZ EcoPrint · Tacna · WhatsApp 952 801 626</div>
+</section>
+
+<script>
+  /* ====== CONFIGURA AQUÍ ====== */
+  const WHATSAPP = "51952801626";          // tu número con 51 adelante
+  const CARPETA  = "modelos/";             // carpeta donde subes los .glb
+  const DEMO     = "https://modelviewer.dev/shared-assets/models/Astronaut.glb"; // cámbialo por un modelo tuyo
+  const TEXTO_AGUA = "FRZ · VISTA PREVIA";
+
+  const mv = document.getElementById("mv");
+  const aviso = document.getElementById("aviso");
+  const barra = document.getElementById("barra");
+  const ayuda = document.getElementById("ayuda");
+
+  // Marca de agua
+  const agua = document.getElementById("agua");
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement("span");
+    s.textContent = TEXTO_AGUA;
+    agua.appendChild(s);
+  }
+
+  // Código del cliente: ?m=ABC123  (solo letras, números, - y _)
+  const params = new URLSearchParams(location.search);
+  const crudo = (params.get("m") || "").trim();
+  const codigo = /^[A-Za-z0-9_-]{1,40}$/.test(crudo) ? crudo : "";
+
+  if (codigo) {
+    document.getElementById("codigo").textContent = "Código: " + codigo;
+    mv.src = CARPETA + codigo + ".glb";
+  } else {
+    document.getElementById("codigo").textContent = "Ejemplo";
+    mv.src = DEMO;
+  }
+
+  // Botones de WhatsApp con mensaje listo
+  const ref = codigo ? " (código " + codigo + ")" : "";
+  const wa = (msg) => "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msg);
+  document.getElementById("btnArchivo").href =
+    wa("Hola, me gustó mi modelo 3D" + ref + ". Quiero el archivo a color.");
+
+  // Carga y errores
+  mv.addEventListener("progress", (e) => {
+    const p = e.detail.totalProgress;
+    barra.style.width = (p * 100) + "%";
+    if (p >= 1) setTimeout(() => barra.style.opacity = 0, 400);
+  });
+  mv.addEventListener("load", () => {
+    setTimeout(() => ayuda.style.opacity = 0, 5000);
+  });
+  mv.addEventListener("error", () => {
+    aviso.innerHTML = "<b>No encontramos este modelo</b>" +
+      "Revisa que el enlace esté completo o escríbenos por WhatsApp y te lo reenviamos.";
+    aviso.classList.remove("oculto");
+    ayuda.classList.add("oculto");
+  });
+</script>
+</body>
+</html>

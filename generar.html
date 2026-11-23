@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Nuevo cliente · FRZ 3D</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0f1115;color:#f2f3f5;
+       max-width:520px;margin:0 auto;padding:22px 16px}
+  h1{font-size:20px;margin:0 0 6px}
+  p.s{color:#9aa1ad;font-size:14px;margin:0 0 18px}
+  button{width:100%;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}
+  .nuevo{background:#22c55e;color:#0b0d10}
+  .copiar{background:#2a2f3a;color:#fff;margin-top:8px;font-size:14px;padding:11px}
+  .caja{background:#181b22;border-radius:14px;padding:14px;margin-top:14px}
+  .et{font-size:12px;color:#9aa1ad;text-transform:uppercase;letter-spacing:1px}
+  .val{font-family:ui-monospace,monospace;font-size:18px;word-break:break-all;margin-top:4px}
+  textarea{width:100%;min-height:120px;background:#0f1115;color:#f2f3f5;border:1px solid #2a2f3a;
+           border-radius:10px;padding:10px;font-size:14px;margin-top:6px;font-family:inherit}
+  a{color:#22c55e}
+</style>
+</head>
+<body>
+  <h1>Nuevo cliente</h1>
+  <p class="s">Genera un código, guarda el modelo de Meshy con ese nombre en la carpeta <b>modelos</b> y envía el mensaje.</p>
+
+  <button class="nuevo" id="gen">➕ Generar código</button>
+
+  <div id="res" style="display:none">
+    <div class="caja">
+      <div class="et">1 · Nombre del archivo</div>
+      <div class="val" id="archivo"></div>
+      <button class="copiar" data-copia="archivo">Copiar nombre</button>
+    </div>
+    <div class="caja">
+      <div class="et">2 · Enlace del cliente</div>
+      <div class="val"><a id="enlace" target="_blank" rel="noopener"></a></div>
+    </div>
+    <div class="caja">
+      <div class="et">3 · Mensaje para WhatsApp</div>
+      <textarea id="mensaje"></textarea>
+      <button class="copiar" data-copia="mensaje">Copiar mensaje</button>
+    </div>
+  </div>
+
+<script>
+  // Letras y números sin los que se confunden (0/O, 1/I/L)
+  const ALFABETO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  function nuevoCodigo(n = 6) {
+    const a = new Uint32Array(n);
+    crypto.getRandomValues(a);
+    return Array.from(a, x => ALFABETO[x % ALFABETO.length]).join("");
+  }
+  const base = new URL("./", location.href).href;
+
+  document.getElementById("gen").onclick = () => {
+    const c = nuevoCodigo();
+    const url = base + "?m=" + c;
+    document.getElementById("archivo").textContent = c + ".glb";
+    const e = document.getElementById("enlace");
+    e.href = url; e.textContent = url;
+    document.getElementById("mensaje").value =
+      "¡Hola! 👋 Tu foto ya está en 3D 😃\n" +
+      "Ábrelo aquí y gíralo con el dedo:\n" + url + "\n\n" +
+      "Si te gusta, te envío el archivo a color para que lo guardes en tu celular. 🎨";
+    document.getElementById("res").style.display = "block";
+  };
+
+  document.querySelectorAll("[data-copia]").forEach(b => {
+    b.onclick = async () => {
+      const el = document.getElementById(b.dataset.copia);
+      const txt = el.value !== undefined ? el.value : el.textContent;
+      try {
+        await navigator.clipboard.writeText(txt);
+        const t = b.textContent; b.textContent = "✔ Copiado"; setTimeout(() => b.textContent = t, 1500);
+      } catch (err) {
+        if (el.select) el.select();
+      }
+    };
+  });
+</script>
+</body>
+</html>
